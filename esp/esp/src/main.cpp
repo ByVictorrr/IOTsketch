@@ -27,7 +27,13 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 		case WStype_CONNECTED: {
 			USE_SERIAL.printf("[WSc] Connected to url: %s\n", payload);
 			// send message to server when Connected
-			webSocket.sendTXT("ConnectText");
+			bool b;
+      if((b = webSocket.sendTXT("ConnectText")) == true){
+			  USE_SERIAL.printf("[WSc] sent!");
+      }else{
+			  USE_SERIAL.printf("[WSc] not sent!");
+      }
+    
 		}
 			break;
 		case WStype_TEXT:
