@@ -8,8 +8,8 @@
 #define USE_SERIAL Serial
 #define SSID "ATTmhSCTEa"
 #define PASS "6505764388"
-#define SERVER_IP "192.168.1.93"
-#define SERVER_PORT 5000
+#define SERVER_IP "192.168.1.252"
+#define SERVER_PORT 80
 #define USERNAME "byvictorrr"
 #define PASSWORD "calpoly"
 
@@ -19,6 +19,8 @@ WebSocketsClient webSocket;
 
 
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
+
+  USE_SERIAL.println((char*)payload);
 
 	switch(type) {
 		case WStype_DISCONNECTED:
@@ -39,7 +41,10 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 		case WStype_TEXT:
 			USE_SERIAL.printf("[WSc] get text: %s\n", payload);
 
-			// send message to server
+      if(strcmp("42[\"join room\",\"hi\"]", (char*)payload)==0){
+        USE_SERIAL.println("about to send text");
+        webSocket.sendTXT("[\"connect bot\",{\"username\': \'byvictorr\', \'password\': \'calpoly\'}]");
+      }
 			// webSocket.sendTXT("message here");
 			break;
 		case WStype_BIN:
@@ -96,7 +101,7 @@ void setup(){
   // expect pong from server within 3000 ms
   // consider connection disconnected if pong is not received 2 times
   webSocket.setExtraHeaders("user_id: 4\r\n");
-  webSocket.enableHeartbeat(15000, 3000, 2);
+  //webSocket.enableHeartbeat(15000, 3000, 2);
 
   // step 3 - connect to server 
 }
