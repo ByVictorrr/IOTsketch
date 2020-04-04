@@ -1,8 +1,9 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
-#include <SocketIoClient.h>
-#include "CPutil.h"
+#include "SocketIoClient.h"
+// #include "CPutil.h"
+#include <ArduinoJson.h>
 
 
 #define USE_SERIAL Serial
@@ -15,68 +16,28 @@
 
 
 ESP8266WiFiMulti WiFiMulti;
-WebSocketsClient webSocket;
+SocketIoClient webSocket;
 
 
-void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
-
-  USE_SERIAL.println((char*)payload);
-
-	switch(type) {
-		case WStype_DISCONNECTED:
-			USE_SERIAL.printf("[WSc] Disconnected!\n");
-			break;
-		case WStype_CONNECTED: {
-			USE_SERIAL.printf("[WSc] Connected to url: %s\n", payload);
-			// send message to server when Connected
-			bool b;
-      if((b = webSocket.sendTXT("ConnectText")) == true){
-			  USE_SERIAL.printf("[WSc] sent!");
-      }else{
-			  USE_SERIAL.printf("[WSc] not sent!");
-      }
-    
-		}
-			break;
-		case WStype_TEXT:
-			USE_SERIAL.printf("[WSc] get text: %s\n", payload);
-
-      if(strcmp("42[\"join room\",\"hi\"]", (char*)payload)==0){
-        USE_SERIAL.println("about to send text");
-        webSocket.sendTXT("[\"connect bot\",{\"username\': \'byvictorr\', \'password\': \'calpoly\'}]");
-      }
-			// webSocket.sendTXT("message here");
-			break;
-		case WStype_BIN:
-			USE_SERIAL.printf("[WSc] get binary length: %u\n", length);
-			hexdump(payload, length);
-
-			// send data to server
-			// webSocket.sendBIN(payload, length);
-			break;
-        case WStype_PING:
-            // pong will be send automatically
-            USE_SERIAL.printf("[WSc] get ping\n");
-            break;
-        case WStype_PONG:
-            // answer to a ping we send
-            USE_SERIAL.printf("[WSc] get pong\n");
-            break;
-    }
-
+void join_room(const char * payload, size_t length){
+  DynamicJsonDocument message(200);
+  String messageStr;
+  message["username"] = USERNAME;
+  message["password"] = PASSWORD;
+  serializeJson(message, messageStr);
+  webSocket.emit("connect bot", messageStr.c_str()); 
 }
-//===================Handlers=========================//
+void message(const char * payload, size_t length){
+  USE_SERIAL.printf("message %s\n", payload);
+}
 void setup_WiFi(ESP8266WiFiMulti *wifi){
   // Step 1 - give creds
   if(!wifi->addAP(SSID, PASS))
     exit(-1);
-
   // Step 2 - have wifi connected
   while(wifi->run() != WL_CONNECTED)
         delay(100);
-
   USE_SERIAL.println("Wifi connected to SSID");
-
 }
 
 void setup(){
@@ -89,28 +50,17 @@ void setup(){
       }
   // step 1 - set up wifi
   setup_WiFi(&WiFiMulti);
-  // step 2 - connect to server
+  // step 2 - connect to server and set handlers
   webSocket.begin(SERVER_IP, SERVER_PORT, "/socket.io/?transport=websocket");
-  webSocket.onEvent(webSocketEvent);
-
-	// try ever 5000 again if connection has failed
-	//webSocket.setReconnectInterval(SERVER_PORT);
-  
-  // start heartbeat (optional)
-  // ping server every 15000 ms
-  // expect pong from server within 3000 ms
-  // consider connection disconnected if pong is not received 2 times
-  webSocket.setExtraHeaders("user_id: 4\r\n");
-  //webSocket.enableHeartbeat(15000, 3000, 2);
-
-  // step 3 - connect to server 
+  webSocket.on("join room", join_room);
+  webSocket.on("message", message);
 }
 
     
 
 void loop(){
   static int loop_count=0;
-  static MSTimer loopTimer;
+  // static MSTimer loopTimer;
 
   //USE_SERIAL.println(loop_count++); 
   webSocket.loop();
