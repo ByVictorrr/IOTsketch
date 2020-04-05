@@ -2,11 +2,14 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
 #include "SocketIoClient.h"
+#include <SoftwareSerial.h>
 // #include "CPutil.h"
 #include <ArduinoJson.h>
 
 
-#define USE_SERIAL Serial
+#define FIRST_UPLOAD_INDICATOR "!!" // has to be synced with other sketch
+#define USB_SERIAL Serial
+#define COM_SERIAL ss
 #define SSID "ATTmhSCTEa"
 #define PASS "6505764388"
 #define SERVER_IP "192.168.1.252"
@@ -15,6 +18,8 @@
 #define PASSWORD "calpoly"
 
 
+
+SoftwareSerial ss(D2, D3);
 ESP8266WiFiMulti WiFiMulti;
 SocketIoClient webSocket;
 
@@ -28,7 +33,7 @@ void join_room(const char * payload, size_t length){
   webSocket.emit("connect bot", messageStr.c_str()); 
 }
 void message(const char * payload, size_t length){
-  USE_SERIAL.printf("message %s\n", payload);
+  USB_SERIAL.printf("message %s\n", payload);
 }
 void setup_WiFi(ESP8266WiFiMulti *wifi){
   // Step 1 - give creds
@@ -37,31 +42,50 @@ void setup_WiFi(ESP8266WiFiMulti *wifi){
   // Step 2 - have wifi connected
   while(wifi->run() != WL_CONNECTED)
         delay(100);
-  USE_SERIAL.println("Wifi connected to SSID");
+  USB_SERIAL.println("Wifi connected to SSID");
 }
 
 void setup(){
-  USE_SERIAL.begin(9600);
-  USE_SERIAL.setDebugOutput(true);
-   for(uint8_t t = 4; t > 0; t--) {
-          USE_SERIAL.printf("[SETUP] BOOT WAIT %d...\n", t);
-          USE_SERIAL.flush();
+  USB_SERIAL.begin(9600);
+  USB_SERIAL.setDebugOutput(true);
+  COM_SERIAL.begin(4800);
+  pinMode(D2, INPUT);
+  pinMode(D3, OUTPUT);
+  USB_SERIAL.setDebugOutput(false);
+  for(uint8_t t = 4; t > 0; t--) {
+          USB_SERIAL.printf("[SETUP] BOOT WAIT %d...\n", t);
+          USB_SERIAL.flush();
           delay(1000);
       }
   // step 1 - set up wifi
-  setup_WiFi(&WiFiMulti);
-  // step 2 - connect to server and set handlers
   webSocket.begin(SERVER_IP, SERVER_PORT, "/socket.io/?transport=websocket");
   webSocket.on("join room", join_room);
   webSocket.on("message", message);
 }
 
+// Reads from the mega board
+char *recieve(){
+  if(COM_SERIAL.available() > 0){
+    return (char *)(COM_SERIAL.readString().c_str());
+  }
+  return NULL;
+}
     
+// Writes to the mega board
+void write(String message){
+  COM_SERIAL.println(message.c_str());
+}
 
 void loop(){
-  static int loop_count=0;
-  // static MSTimer loopTimer;
 
-  //USE_SERIAL.println(loop_count++); 
+  char *message;
+  if((message=recieve()) != NULL){
+    // means we got somethings
+
+    /* case 1 - first time uploading */
+    // use eeprom to store values
+
+  }
+
   webSocket.loop();
 }
