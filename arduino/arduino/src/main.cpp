@@ -5,13 +5,13 @@
 #define USB_SERIAL Serial
 #define COM_SERIAL hs
 
-#define FIRST_UPLOAD_INDICATOR "!!"
 #define IS_FIRST_UPLOAD true
 
 #define SSID "ATTmhSCTEa"
 #define WIFI_PASS "6505764388"
 #define USERNAME "byvictorrr"
 #define PASSWORD "calpoly"
+#define NULL String('\0');
 
 #define RX 19
 #define TX 3
@@ -21,9 +21,9 @@ HybridSerial hs(RX, TX);
 void send(const char * message){
   COM_SERIAL.println(message);
 }
-const char *recieve(){  
+String recieve(){  
   if(COM_SERIAL.available() > 0){
-    return COM_SERIAL.readString().c_str();
+    return COM_SERIAL.readString();
   }
   return NULL;
 }
@@ -35,8 +35,7 @@ void sendCreds(){
   creds["username"] = USERNAME;
   creds["password"] = PASSWORD;
   serializeJson(creds, strCreds);
-  send(strCreds);
-
+  send(strCreds.c_str());
 }
 
 void setup() {
@@ -47,13 +46,21 @@ void setup() {
 
 
 void loop() {
+ String message;
  if(IS_FIRST_UPLOAD){
-    send(FIRST_UPLOAD_INDICATOR);
-    delay(1000);
     sendCreds();
   }else{
-    // validate commands 
+    //=== read commands - format {command: <command>}====//
+    // Case 1 - nothing is received
+    if((message = recieve()) == NULL){
+      return;
+    // Case 2 - not of json format
+    }else if(deseralizeJson(json_msg, message)){
+      return;
+    // Case 3 - json format
+    }
   }
 
   USB_SERIAL.println(COM_SERIAL.readString());
+  delay(100);
 }
