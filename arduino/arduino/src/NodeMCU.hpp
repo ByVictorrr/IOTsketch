@@ -1,5 +1,4 @@
 #include <Arduino.h>
-// #include "HybridSerial.hpp"
 #include <ArduinoJson.h>
 #include <NeoSWSerial.h>
 
@@ -18,21 +17,35 @@
 #define RX 10
 #define TX 45
 
-NeoSWSerial ns(RX, TX);
+class NodeMCU{
+  private:
+    NeoSWSerial ns;
+  public:
+    NodeMCU(unsigned const int rx, unsigned const int tx)
+      : ns(rx, tx)
+    {
 
-void send(const char * message){
-  COM_SERIAL.println(message);
-  delay(1000);
-}
-void send(String message){
-  COM_SERIAL.println(message);
-}
-String recieve(){  
-  if(COM_SERIAL.available() > 0){
-    return COM_SERIAL.readStringUntil('\n');
-  }
-  return NULL;
-}
+    }
+    void send(const char * message){
+      COM_SERIAL.println(message);
+      delay(1000);
+    }
+    void send(const String &message){
+      ns.println(message);
+    }
+    String &recieve(){  
+      String data;
+      if(COM_SERIAL.available() > 0){
+        data = COM_SERIAL.readStringUntil('\n');
+      }else{
+        data = NULL;
+      }
+      return data;
+    }
+
+
+};
+
 void sendCreds(){
   DynamicJsonDocument creds(400);
   String strCreds;
