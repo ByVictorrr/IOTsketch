@@ -12,12 +12,12 @@
 
 #define RX 10
 #define TX 45
+#define DEBUG_PIN 2
 
-IOTbot iotBot(RX, TX, SSID, WPA, USERNAME, PASSWORD, IS_FIRST_UPLOAD);
+IOTbot iotBot(RX, TX, DEBUG_PIN , SSID, WPA, USERNAME, PASSWORD, IS_FIRST_UPLOAD);
 
 void setup(){
   USB_SERIAL.begin(9600);
-  USB_SERIAL.println("HI");
   iotBot.begin(9600);
 }
 
