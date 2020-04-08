@@ -1,64 +1,30 @@
 #include <Arduino.h>
-// #include "HybridSerial.hpp"
 #include <ArduinoJson.h>
-#include <NeoSWSerial.h>
+#include "IOTbot.hpp"
 
 #define USB_SERIAL Serial
-#define COM_SERIAL ns
 
 #define IS_FIRST_UPLOAD false
-
 #define SSID "ATTmhSCTEa"
-#define WIFI_PASS "6505764388"
+#define WPA "6505764388"
 #define USERNAME "byvictorrr"
 #define PASSWORD "calpoly"
-#define NULL String('\0')
-
-
 #define RX 10
 #define TX 45
 
-NeoSWSerial ns(RX, TX);
-
-void send(const char * message){
-  COM_SERIAL.println(message);
-  delay(1000);
-}
-void send(String message){
-  COM_SERIAL.println(message);
-}
-String recieve(){  
-  if(COM_SERIAL.available() > 0){
-    return COM_SERIAL.readStringUntil('\n');
-  }
-  return NULL;
-}
-void sendCreds(){
-  DynamicJsonDocument creds(400);
-  String strCreds;
-  creds["ssid"] = SSID;
-  creds["wifi_pass"] = WIFI_PASS;
-  creds["username"] = USERNAME;
-  creds["password"] = PASSWORD;
-  serializeJson(creds, strCreds);
-  send(strCreds.c_str());
-}
-
-void setup() {
+IOTbot iotBot(RX, TX, IS_FIRST_UPLOAD, SSID, WPA, USERNAME, PASSWORD);
+void setup(){
   USB_SERIAL.begin(9600);
-  COM_SERIAL.begin(9600);
- }
-
+  iotBot.begin(115200);
+}
 
 void loop() {
- if(IS_FIRST_UPLOAD){
-    sendCreds();
-  }else{
+
     static String message;
     DynamicJsonDocument json_msg(400);
     //========= read commands ==========//
     // Case 1 - nothing is received
-    if((message = recieve()) != NULL){
+    if((message = iotBot.recieve()) != null_str){
       // Case 2 - not of json format
       if(!deserializeJson(json_msg, message)){
         USB_SERIAL.println("message not of json format");
@@ -73,8 +39,6 @@ void loop() {
     //======== write commands ============//
     json_msg["msg"] = "arduino";
     serializeJson(json_msg, message);
-    send(message);
+    iotBot.send(message);
     //==================================//
-  }
-  //delay(2000);
 }
