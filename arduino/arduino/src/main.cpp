@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <ArduinoJson.h>
-#include "IOTbot.hpp"
+#include "IOTbot.h"
 
 #define USB_SERIAL Serial
 
@@ -9,19 +9,23 @@
 #define WPA "6505764388"
 #define USERNAME "byvictorrr"
 #define PASSWORD "calpoly"
+
 #define RX 10
 #define TX 45
 
-IOTbot iotBot(RX, TX, IS_FIRST_UPLOAD, SSID, WPA, USERNAME, PASSWORD);
+IOTbot iotBot(RX, TX, SSID, WPA, USERNAME, PASSWORD, IS_FIRST_UPLOAD);
+
 void setup(){
   USB_SERIAL.begin(9600);
-  iotBot.begin(115200);
+  USB_SERIAL.println("HI");
+  iotBot.begin(9600);
 }
 
 void loop() {
 
     static String message;
     DynamicJsonDocument json_msg(400);
+
     //========= read commands ==========//
     // Case 1 - nothing is received
     if((message = iotBot.recieve()) != null_str){
