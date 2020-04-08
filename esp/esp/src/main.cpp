@@ -8,23 +8,27 @@
 #include <ArduinoJson.h>
 
 
-#define FIRST_UPLOAD_INDICATOR "{\"ssid" // has to be synced with other sketch
+#define FIRST_UPLOAD_INDICATOR "{\"ssid" 
 #define USB_SERIAL Serial
 #define COM_SERIAL ss
-#define MAX 35 // at 50 it gives a stack trace
+#define MAX 20 // at 50 it gives a stack trace
 #define SERVER_IP "192.168.1.252"
 #define SERVER_PORT 80
 
-#define NULL String('\0')
+#define null_str String('\0')
 
 #define GET_SSID "ssid"
 #define GET_WIFI_PASS "wifi_pass"
 #define GET_USERNAME "username"
 #define GET_PASSWORD "password"
+
+#define TX D2
+#define RX D1
  
 
+
 DynamicJsonDocument creds(400);
-SoftwareSerial ss(D2, D3);
+SoftwareSerial ss(RX, TX);
 ESP8266WiFiMulti WiFiMulti;
 SocketIoClient webSocket;
 
@@ -33,19 +37,32 @@ SocketIoClient webSocket;
 void join_room(const char * payload, size_t length){
   DynamicJsonDocument message(200);
   String messageStr;
-  message["username"] = creds[GET_USERNAME];
-  message["password"] = creds[GET_PASSWORD];
+  // String username = message["username"] = creds[GET_USERNAME];
+  // String pass = message["password"] = creds[GET_PASSWORD];
+  String username = message["username"] = "byvictorrr";
+  String pass = message["password"] = "calpoly";
+  USB_SERIAL.println("joining room with");
+  USB_SERIAL.println(username);
+  USB_SERIAL.println(pass);
   serializeJson(message, messageStr);
   webSocket.emit("connect bot", messageStr.c_str()); 
 }
+// recieved a msg
 void message(const char * payload, size_t length){
   USB_SERIAL.printf("message %s\n", payload);
+  // send to arduino
+  COM_SERIAL.println(payload);
 }
 void setup_WiFi(ESP8266WiFiMulti *wifi){
   // Step 1 - give creds
+    String message = creds[GET_WIFI_PASS];
+    USB_SERIAL.println(message);
+    String message1=creds[GET_SSID];
+    USB_SERIAL.println(message1);
+    
   if(!wifi->addAP(creds[GET_SSID], creds[GET_WIFI_PASS])){
     USB_SERIAL.println("wrong ssid and password");
-    String message = creds[GET_PASSWORD];
+    String message = creds[GET_WIFI_PASS];
     USB_SERIAL.println(message);
     String message1=creds[GET_SSID];
     USB_SERIAL.println(message1);
@@ -53,21 +70,26 @@ void setup_WiFi(ESP8266WiFiMulti *wifi){
   }
   // Step 2 - have wifi connected
   while(wifi->run() != WL_CONNECTED)
-        delay(100);
+    delay(100);
+
   USB_SERIAL.println("Wifi connected to SSID");
 }
 
 //=====================COMM with arduino=======================//
 String recieve(){
+  String data;
+  data.reserve(100);
   if(COM_SERIAL.available() > 0){
-    return COM_SERIAL.readString();
+    data = COM_SERIAL.readStringUntil('\n');
+    return data;
   }
-  return NULL;
+  return null_str;
 }
     
 // Writes to the mega board
 void write(String message){
   COM_SERIAL.println(message);
+  COM_SERIAL.write(message.c_str());
 }
 
 String read_EEPROM(int size, int base_addr){
@@ -89,23 +111,29 @@ void write_EEPROM(String data, int size, int base_addr){
 
 void setup(){
   USB_SERIAL.begin(9600);
-  COM_SERIAL.begin(4800);
+  COM_SERIAL.begin(9600);
   EEPROM.begin(512);
 
-  pinMode(D2, INPUT);
-  pinMode(D3, OUTPUT);
+  pinMode(RX, INPUT);
+  pinMode(TX, OUTPUT);
+  digitalWrite(TX, LOW);
   USB_SERIAL.setDebugOutput(false);
   for(uint8_t t = 4; t > 0; t--) {
           USB_SERIAL.printf("[SETUP] BOOT WAIT %d...\n", t);
           USB_SERIAL.flush();
           delay(1000);
       }
+
   // step 1 - load variables stored in EEPROM
-  
-  creds[GET_SSID]=read_EEPROM(MAX, 0);
-  creds[GET_WIFI_PASS]=read_EEPROM(MAX, MAX);
-  creds[GET_USERNAME]=read_EEPROM(MAX, 2*MAX);
-  creds[GET_PASSWORD]=read_EEPROM(MAX, 3*MAX);
+  //creds[GET_SSID]=read_EEPROM(MAX, 0);
+  creds[GET_SSID]= "ATTmhSCTEa";
+  creds[GET_WIFI_PASS]="6505764388";
+  //creds[GET_WIFI_PASS]=read_EEPROM(MAX, MAX);
+  String username = creds[GET_USERNAME]=read_EEPROM(MAX, 2*MAX);
+  String pass = creds[GET_PASSWORD]=read_EEPROM(MAX, 3*MAX);
+  USB_SERIAL.println(username);
+  USB_SERIAL.println(pass);
+  USB_SERIAL.println(EEPROM.length());
   setup_WiFi(&WiFiMulti);
 
 
@@ -115,33 +143,50 @@ void setup(){
   webSocket.on("message", message);
 }
 
+void first_upload(DynamicJsonDocument &json_msg){
+    for (int i = 0; i < EEPROM.length(); i++){
+      EEPROM.write(i, 0);
+    }
+    write_EEPROM(json_msg[GET_SSID], strlen(json_msg[GET_SSID]), 0);
+    write_EEPROM(json_msg[GET_WIFI_PASS], strlen(json_msg[GET_WIFI_PASS]), MAX);
+    write_EEPROM(json_msg[GET_USERNAME], strlen(json_msg[GET_USERNAME]), 2*MAX);
+    write_EEPROM(json_msg[GET_PASSWORD], strlen(json_msg[GET_PASSWORD]), 3*MAX);
+    EEPROM.commit(); 
+}
 
 void loop(){
 
   String message;
+  DynamicJsonDocument json_msg(400);
   message.reserve(MAX);
-  USB_SERIAL.print("begginging");
-  USB_SERIAL.println(message=recieve());
-  USB_SERIAL.print("end");
-  if(message.substring(0,strlen(FIRST_UPLOAD_INDICATOR)) == FIRST_UPLOAD_INDICATOR){
-    DynamicJsonDocument write_creds(400);
-    // case 1 - first time uploading
-    USB_SERIAL.println("here");
-    USB_SERIAL.println("passed msg recieve");
-    deserializeJson(write_creds, message.c_str());
-    // first clear the eeprom
-    for (int i = 0; i < EEPROM.length(); i++){
-      EEPROM.write(i, 0);
-    }
-    // TODO: parse messages in DYnamic json objects
-    write_EEPROM(write_creds[GET_SSID], strlen(write_creds[GET_SSID]), 0);
-    write_EEPROM(write_creds[GET_WIFI_PASS], strlen(write_creds[GET_WIFI_PASS]), MAX);
-    write_EEPROM(write_creds[GET_USERNAME], strlen(write_creds[GET_USERNAME]), 2*MAX);
-    write_EEPROM(write_creds[GET_PASSWORD], strlen(write_creds[GET_PASSWORD]), 3*MAX);
-    EEPROM.commit();
-    // case 2 - else treat everything normally 
+  USB_SERIAL.println("beg");
+  USB_SERIAL.println((message=recieve()));
+  USB_SERIAL.println("end");
+
+  // Case 1 - data has been received
+  if(message != null_str){
+    // Case 2 - data not of the right format
+    if(deserializeJson(json_msg, message)){
+      USB_SERIAL.println("Data sent is of the wrong format");
+    // Case 3 - data of the write format
     }else{
-      // USB_SERIAL.println("else statement");
+      // Case 4 - first upload
+      USB_SERIAL.println("before first");
+      if(message.substring(0,strlen(FIRST_UPLOAD_INDICATOR)) == FIRST_UPLOAD_INDICATOR){
+        USB_SERIAL.println("in first upload");
+        first_upload(json_msg);
+      // Case 5 - correct general message
+      }else{
+        if(json_msg.containsKey("error")){
+          // like no command found for example (value)
+          USB_SERIAL.println("msg");
+        }else if(json_msg.containsKey("msg")){
+          // everythings fine 
+          USB_SERIAL.println("got here");
+        }
+      }
     }
+  }
+  COM_SERIAL.println("hi");
   webSocket.loop();
 }
