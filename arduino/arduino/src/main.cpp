@@ -11,7 +11,7 @@
 #define PASSWORD "calpoly"
 
 #define RX 10
-#define TX 45
+#define TX 43
 #define DEBUG_PIN 2
 
 IOTbot iotBot(RX, TX, DEBUG_PIN , SSID, WPA, USERNAME, PASSWORD, IS_FIRST_UPLOAD);
@@ -41,8 +41,11 @@ void loop() {
         USB_SERIAL.println(message);
     }
     //======== write commands ============//
-    json_msg["msg"] = "arduino";
-    serializeJson(json_msg, message);
+    // json_msg["msg"] = "arduino";
+    // serializeJson(json_msg, message);
+    message = "hi client";
     iotBot.send(message);
+
     //==================================//
+    delay(1500);
 }

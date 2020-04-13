@@ -59,10 +59,10 @@
      * @param message is the data to be sent 
      */
     void IOTbot::send(char * message){
-      ns.println(message);
+      ns.print(message);
     }    
     void IOTbot::send(String &message){
-      ns.println(message);
+      ns.print(message);
     }
     /**
      * Used to read a message from the NodeMCU
