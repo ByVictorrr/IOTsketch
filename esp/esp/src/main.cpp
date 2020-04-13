@@ -42,8 +42,6 @@ void join_room(const char * payload, size_t length){
   String username = message["username"] = "byvictorrr";
   String pass = message["password"] = "calpoly";
   USB_SERIAL.println("joining room with");
-  USB_SERIAL.println(username);
-  USB_SERIAL.println(pass);
   serializeJson(message, messageStr);
   webSocket.emit("connect bot", messageStr.c_str()); 
 }
@@ -89,7 +87,6 @@ String recieve(){
 // Writes to the mega board
 void write(String message){
   COM_SERIAL.println(message);
-  COM_SERIAL.write(message.c_str());
 }
 
 String read_EEPROM(int size, int base_addr){
@@ -159,34 +156,22 @@ void loop(){
   String message;
   DynamicJsonDocument json_msg(400);
   message.reserve(MAX);
-  USB_SERIAL.println("beg");
-  USB_SERIAL.println((message=recieve()));
-  USB_SERIAL.println("end");
 
   // Case 1 - data has been received
-  if(message != null_str){
-    // Case 2 - data not of the right format
+  if((message=recieve()) != null_str){
+    // Case 2 - regular message from arduino(general message)
     if(deserializeJson(json_msg, message)){
-      USB_SERIAL.println("Data sent is of the wrong format");
+      message = "\"" + message+"\"";
+      USB_SERIAL.println(message);
+      webSocket.emit("message", message.c_str());
     // Case 3 - data of the write format
     }else{
       // Case 4 - first upload
-      USB_SERIAL.println("before first");
       if(message.substring(0,strlen(FIRST_UPLOAD_INDICATOR)) == FIRST_UPLOAD_INDICATOR){
         USB_SERIAL.println("in first upload");
         first_upload(json_msg);
-      // Case 5 - correct general message
-      }else{
-        if(json_msg.containsKey("error")){
-          // like no command found for example (value)
-          USB_SERIAL.println("msg");
-        }else if(json_msg.containsKey("msg")){
-          // everythings fine 
-          USB_SERIAL.println("got here");
-        }
       }
     }
   }
-  COM_SERIAL.println("hi");
   webSocket.loop();
 }
