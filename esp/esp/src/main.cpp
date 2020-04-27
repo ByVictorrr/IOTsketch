@@ -6,7 +6,7 @@
 #include <EEPROM.h>
 // #include "CPutil.h"
 #include <ArduinoJson.h>
-
+#include <Scheduler.h>
 
 #define FIRST_UPLOAD_INDICATOR "{\"ssid" 
 #define USB_SERIAL Serial
@@ -16,6 +16,7 @@
 #define SERVER_PORT 80
 
 #define null_str String('\0')
+#define LED D3
 
 #define GET_SSID "ssid"
 #define GET_WIFI_PASS "wifi_pass"
@@ -50,6 +51,7 @@ void message(const char * payload, size_t length){
   USB_SERIAL.printf("message %s\n", payload);
   // send to arduino
   COM_SERIAL.println(payload);
+  digitalWrite(LED, HIGH);
 }
 void setup_WiFi(ESP8266WiFiMulti *wifi){
   // Step 1 - give creds
@@ -77,6 +79,7 @@ void setup_WiFi(ESP8266WiFiMulti *wifi){
 String recieve(){
   String data;
   data.reserve(100);
+  yield();
   if(COM_SERIAL.available() > 0){
     data = COM_SERIAL.readStringUntil('\n');
     return data;
@@ -111,6 +114,7 @@ void setup(){
   COM_SERIAL.begin(9600);
   EEPROM.begin(512);
 
+  pinMode(LED, OUTPUT);
   pinMode(RX, INPUT);
   pinMode(TX, OUTPUT);
   digitalWrite(TX, LOW);
