@@ -125,7 +125,7 @@ void SocketIoClient::trigger(const char* event, const char * payload, size_t len
 void SocketIoClient::disconnect()
 {
 	_webSocket.disconnect();
-	trigger("disconnect", NULL, 0);
+	// trigger("disconnect", NULL, 0);
 }
 
 void SocketIoClient::setAuthorization(const char * user, const char * password) {

@@ -8,7 +8,7 @@
 #include <ArduinoJson.h>
 #include <Scheduler.h>
 
-#define FIRST_UPLOAD_INDICATOR "{\"ssid" 
+#define FIRST_UPLOAD_INDICATOR "{\"username"
 #define USB_SERIAL Serial
 #define COM_SERIAL ss
 #define MAX 20 // at 50 it gives a stack trace
@@ -25,7 +25,10 @@
 
 #define TX D2
 #define RX D1
- 
+#define SSID_LOC  0
+#define WPA_LOC MAX
+#define USR_NAME_LOC 2*MAX
+#define PASS_LOC 3*MAX
 
 
 DynamicJsonDocument creds(400);
@@ -36,14 +39,11 @@ SocketIoClient webSocket;
 
 //=====================SOCKETIO=======================//
 void join_room(const char * payload, size_t length){
-  DynamicJsonDocument message(200);
+  DynamicJsonDocument u_p_creds(200);
   String messageStr;
-  // String username = message["username"] = creds[GET_USERNAME];
-  // String pass = message["password"] = creds[GET_PASSWORD];
-  String username = message["username"] = "byvictorrr";
-  String pass = message["password"] = "calpoly";
-  USB_SERIAL.println("joining room with");
-  serializeJson(message, messageStr);
+  u_p_creds["username"] = creds["username"];
+  u_p_creds["password"] = creds["password"];
+  serializeJson(u_p_creds, messageStr);
   webSocket.emit("connect bot", messageStr.c_str()); 
 }
 // recieved a msg
@@ -52,6 +52,10 @@ void message(const char * payload, size_t length){
   // send to arduino
   COM_SERIAL.println(payload);
   digitalWrite(LED, HIGH);
+}
+void disconnect(const char * payload, size_t length){
+  webSocket.disconnect();
+  USB_SERIAL.println("disconnecting");
 }
 void setup_WiFi(ESP8266WiFiMulti *wifi){
   // Step 1 - give creds
@@ -79,7 +83,7 @@ void setup_WiFi(ESP8266WiFiMulti *wifi){
 String recieve(){
   String data;
   data.reserve(100);
-  yield();
+  char input;
   if(COM_SERIAL.available() > 0){
     data = COM_SERIAL.readStringUntil('\n');
     return data;
@@ -89,23 +93,46 @@ String recieve(){
     
 // Writes to the mega board
 void write(String message){
-  COM_SERIAL.println(message);
+  COM_SERIAL.print(message+'\n');
+}
+
+void write_EEPROM(char addr,String data)
+{
+  int _size = data.length();
+  int i;
+  for(i=0;i<_size;i++)
+  {
+    EEPROM.write(addr+i,data[i]);
+  }
+  EEPROM.write(addr+_size,'\0');   //Add termination null character for String Data
+  EEPROM.commit();
 }
 
 String read_EEPROM(int size, int base_addr){
   String data;
   for(int i = base_addr; i<base_addr+size; i++){
     USB_SERIAL.println("reading");
-    data+=char(EEPROM.read(i));
+    data+=(char)EEPROM.read(i);
   }
   return data;
 }
-void write_EEPROM(String data, int size, int base_addr){
-  const char *c_data = data.c_str();
-  for(int i = base_addr; i<base_addr+size; i++){
-    EEPROM.write(i, c_data[i]);
+String read_EEPROM(char addr)
+{
+  int i;
+  char data[100]; //Max 100 Bytes
+  int len=0;
+  unsigned char k;
+  k=EEPROM.read(addr);
+  while(k != '\0' && len<MAX)   //Read until null character
+  {    
+    k=EEPROM.read(addr+len);
+    data[len]=k;
+    len++;
   }
+  data[len]='\0';
+  return String(data);
 }
+
 
 //=====================================================//
 
@@ -126,33 +153,28 @@ void setup(){
       }
 
   // step 1 - load variables stored in EEPROM
-  //creds[GET_SSID]=read_EEPROM(MAX, 0);
-  creds[GET_SSID]= "ATTmhSCTEa";
-  creds[GET_WIFI_PASS]="6505764388";
-  //creds[GET_WIFI_PASS]=read_EEPROM(MAX, MAX);
-  String username = creds[GET_USERNAME]=read_EEPROM(MAX, 2*MAX);
-  String pass = creds[GET_PASSWORD]=read_EEPROM(MAX, 3*MAX);
-  USB_SERIAL.println(username);
-  USB_SERIAL.println(pass);
-  USB_SERIAL.println(EEPROM.length());
+  
+  creds[GET_SSID]=read_EEPROM(SSID_LOC);
+  creds[GET_WIFI_PASS] = read_EEPROM(WPA_LOC);
+  creds[GET_USERNAME] = read_EEPROM(USR_NAME_LOC);
+  creds[GET_PASSWORD] = read_EEPROM(PASS_LOC);
   setup_WiFi(&WiFiMulti);
-
-
   // Step 2 - socketio stuff
   webSocket.begin(SERVER_IP, SERVER_PORT, "/socket.io/?transport=websocket");
   webSocket.on("join room", join_room);
   webSocket.on("message", message);
+  webSocket.on("disconnect", disconnect);
 }
 
 void first_upload(DynamicJsonDocument &json_msg){
     for (int i = 0; i < EEPROM.length(); i++){
-      EEPROM.write(i, 0);
+      EEPROM.put(i, 0);
     }
-    write_EEPROM(json_msg[GET_SSID], strlen(json_msg[GET_SSID]), 0);
-    write_EEPROM(json_msg[GET_WIFI_PASS], strlen(json_msg[GET_WIFI_PASS]), MAX);
-    write_EEPROM(json_msg[GET_USERNAME], strlen(json_msg[GET_USERNAME]), 2*MAX);
-    write_EEPROM(json_msg[GET_PASSWORD], strlen(json_msg[GET_PASSWORD]), 3*MAX);
-    EEPROM.commit(); 
+    EEPROM.commit();
+    write_EEPROM(SSID_LOC, json_msg[GET_SSID]);
+    write_EEPROM(WPA_LOC, json_msg[GET_WIFI_PASS]);
+    write_EEPROM(USR_NAME_LOC, json_msg[GET_USERNAME]);
+    write_EEPROM(PASS_LOC, json_msg[GET_PASSWORD]);
 }
 
 void loop(){
@@ -163,10 +185,11 @@ void loop(){
 
   // Case 1 - data has been received
   if((message=recieve()) != null_str){
+
+    USB_SERIAL.println(message);
     // Case 2 - regular message from arduino(general message)
     if(deserializeJson(json_msg, message)){
       message = "\"" + message+"\"";
-      USB_SERIAL.println(message);
       webSocket.emit("message", message.c_str());
     // Case 3 - data of the write format
     }else{
