@@ -35,7 +35,11 @@
 * Once you see the bot connected to your room (this is your username), you can start sending commands from the arduino to the server directly and vice versa.
 
 
-## 4. Sending commands from 
+## 4. IOTbot API ( arduino/arduino/IOTbot.h )
+0. IOTbot(rx, tx, debugPin, ssid, wpa, username, password, isFirstUpload): the first 3 parms are required, but the others are used on the first upload to store the credentials on the esp.  
+1. send(string/c style string): send a message to the server
+2. recieve(): get a message from the server
+
 
 
 
