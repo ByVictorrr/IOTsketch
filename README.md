@@ -4,7 +4,7 @@
 * Hardware connection
 * VScode
 * PlatformIO
-  * Install Libraries from PlatformIO: ArduinoJson, SocketioClient, EspSoftwareSerial, SoftwareSerial, and WebSockets
+  * Install Libraries from PlatformIO: ArduinoJson, SocketioClient, EspSoftwareSerial, SoftwareSerial, WebSockets, and NeoSWSerial
 
 ## 1. Getting Started
 * Once VScode and PlatformIO is installed.
@@ -31,6 +31,11 @@
 * On your computer go to the IP address gave out by Dr. Smith (make sure your logged in) and go to "Controll bot"
 
 ![controll-bot](https://i.imgur.com/9UqwoXA.png)
+
+* Once you see the bot connected to your room (this is your username), you can start sending commands from the arduino to the server directly and vice versa.
+
+
+## 4. Sending commands from 
 
 
 
