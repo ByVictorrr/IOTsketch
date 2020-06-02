@@ -4,7 +4,7 @@
 * Hardware connection
 * VScode
 * PlatformIO
-  * Install Libraries from PlatformIO: ArduinoJson, SocketioClient, EspSoftwareSerial, SoftwareSerial
+  * Install Libraries from PlatformIO: ArduinoJson, SocketioClient, EspSoftwareSerial, SoftwareSerial, and WebSockets
 
 ## 1. Getting Started
 * Once VScode and PlatformIO is installed.
@@ -12,7 +12,7 @@
 * Open the esp folder with VScode as a PlatformIO project.
 * Locate the src folder and find main.cpp
   * Look for SERVER_IP and SERVER_PORT Macros and change them to whatever CPE123 specifies
-* Finally upload 
+* Finally upload (on the side panel click on the alien icon and click upload and monitor)
 
 ## 2. Registering and First upload
 * You will want to go to the website provided by Dr. Smith and register for an account.
@@ -23,13 +23,15 @@
   * For PASSWORD - password you used to register your account
   * For IS_FIRST_UPLOAD - put true (after the first sketch you wont need these credentials)
   
-* Finally its time to upload your sketch, on the side panel click on the alien icon and click upload
+* Finally its time to upload your sketch, on the side panel click on the alien icon and click upload and monitor
 
 * After this step your credentials should be saved on the esp's eeprom, so when you reboot it/unplug it everything should be saved
  
 ## 3. Connecting to the server
 * On your computer go to the IP address gave out by Dr. Smith (make sure your logged in) and go to "Controll bot"
 
-![controll-bot](https://i.imgur.com/ipw4AaG.png)
+![controll-bot](https://i.imgur.com/9UqwoXA.png)
+
+
 
 
