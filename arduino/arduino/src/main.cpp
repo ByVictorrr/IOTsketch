@@ -10,11 +10,16 @@
 #define USERNAME "byvictorrr"
 #define PASSWORD "calpoly"
 
-#define RX 10
+#define RX 10 
 #define TX 43
 #define DEBUG_PIN 2
 
+// First Upload declaration
 IOTbot iotBot(RX, TX, DEBUG_PIN , SSID, WPA, USERNAME, PASSWORD, IS_FIRST_UPLOAD);
+
+// Not first upload declaration
+IOTbot iotbot(RX, TX, DEBUG_PIN);
+
 
 void setup(){
   USB_SERIAL.begin(9600);
@@ -22,30 +27,14 @@ void setup(){
 }
 
 void loop() {
-
     static String message;
-    DynamicJsonDocument json_msg(400);
-
     //========= read commands ==========//
-    // Case 1 - nothing is received
     if((message = iotBot.recieve()) != null_str){
-      // Case 2 - not of json format
-      if(!deserializeJson(json_msg, message)){
-        USB_SERIAL.println("message not of json format");
-      // Case 3 - command in json format, but doesnt have the right key
-      }else if(!json_msg.containsKey("command")){
-        USB_SERIAL.println("message of not of the form {\"command\": <command>}");
-      }else{
-        USB_SERIAL.println("message of the write form");
-      }
-        USB_SERIAL.println(message);
+      // A command has been sent from the esp board
+      iotBot.send("I have received your message");
+    }else{
+      // A command has not been sent from the esp board
+      iotBot.send("I have not gotten a message");
     }
-    //======== write commands ============//
-    // json_msg["msg"] = "arduino";
-    // serializeJson(json_msg, message);
-    message = "hi client";
-    iotBot.send(message);
-
-    //==================================//
     delay(1500);
 }

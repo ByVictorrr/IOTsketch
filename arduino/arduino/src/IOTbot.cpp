@@ -11,10 +11,13 @@
      */
     IOTbot::IOTbot(const unsigned int rx, const unsigned int tx, const unsigned debugPin, 
           const char * ssid, const char *wpa, const char *username, const char *password,
-          boolean isFirstUpload = false)
-          : ns(rx, tx), debugPin(debugPin) 
+          boolean isFirstUpload)
+          : ns(rx, tx), debugPin(debugPin), ssid(ssid), wpa(wpa), username(username), password(password),
+          isFirstUpload(isFirstUpload)
     {
       pinMode(debugPin, OUTPUT);
+      // For credentials
+
       // Arduino recieve wont work if its not any of these numbers
       if(!(rx==10 || rx==11 || rx==12 || rx==13 || rx==14 ||
          rx==15 || rx==50 || rx==51 || rx==52 || rx==53 ||
@@ -34,35 +37,40 @@
           delay(1000);                       // wait for a second
          }
         }
-      // First time uploading your credentials to the NodeMCU
-      if(isFirstUpload)
-      {
-        DynamicJsonDocument creds(400);
-        String strCreds;
-        creds["ssid"] = ssid;
-        creds["wpa"] = wpa;
-        creds["username"] = username;
-        creds["password"] = password;
-        serializeJson(creds, strCreds);
-        send(strCreds);
-      }
-    }
+     }
     /**
      * Function to set the baud rate for the serial communication for the nodeMCU and the mega
+     * Also it send the credentials to the esp board
      * @param baud the baud rate for these rx, and tx to run at
      */
     void IOTbot::begin(unsigned long baud=9600){
       ns.begin(baud);
+      // First time uploading your credentials to the NodeMCU
+      if(this->isFirstUpload)
+      {
+        DynamicJsonDocument creds(500);
+        String strCreds = "";
+        // strCreds.reserve(400);
+        creds["username"] = this->username;
+        creds["password"] = this->password;
+        creds["wifi_pass"] = this->wpa;
+        creds["ssid"] = this->ssid;
+        serializeJson(creds, strCreds);
+        Serial.println(strCreds);
+        send(strCreds);
+        delay(5000);
+      }
+
     }
     /**
      * Function is used to send a message to the NodeMCU 
      * @param message is the data to be sent 
      */
     void IOTbot::send(char * message){
-      ns.print(message);
+      ns.println(message + '\n');
     }    
     void IOTbot::send(String &message){
-      ns.print(message);
+      ns.print(message+'\n');
     }
     /**
      * Used to read a message from the NodeMCU

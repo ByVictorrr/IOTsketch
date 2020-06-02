@@ -10,7 +10,9 @@ class IOTbot{
   private:
     NeoSWSerial ns;
     int debugPin;
-    // hide the default constructor
+    // Credential stuff
+    bool isFirstUpload;
+    String ssid, wpa, username, password;
     IOTbot();
   public:
      /**
@@ -19,7 +21,7 @@ class IOTbot{
      * @param rx transmissing pin of the mega from the NodeMCU
      */
     IOTbot(const unsigned int rx, const unsigned int tx, const unsigned debugPin, 
-          const char * ssid, const char *wpa, const char *username, const char *password,
+          const char * ssid = nullptr, const char *wpa=nullptr, const char *username=nullptr, const char *password=nullptr,
           boolean isFirstUpload = false);
     /**
      * Function to set the baud rate for the serial communication for the nodeMCU and the mega
